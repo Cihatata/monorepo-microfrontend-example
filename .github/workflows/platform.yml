@@ -34,6 +34,9 @@ jobs:
   deploy:
     needs: ci
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      deployments: write
     uses: ./.github/workflows/deploy-cloudflare.yml
     with:
       app_name: '@mf/platform'
