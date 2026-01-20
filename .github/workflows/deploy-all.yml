@@ -26,6 +26,9 @@ jobs:
   # Stage 1: Deploy Platform (no dependencies)
   deploy-platform:
     if: ${{ inputs.deploy_platform }}
+    permissions:
+      contents: read
+      deployments: write
     uses: ./.github/workflows/deploy-cloudflare.yml
     with:
       app_name: '@mf/platform'
@@ -41,6 +44,9 @@ jobs:
   deploy-traffic:
     if: ${{ inputs.deploy_remotes }}
     needs: deploy-platform
+    permissions:
+      contents: read
+      deployments: write
     uses: ./.github/workflows/deploy-cloudflare.yml
     with:
       app_name: '@mf/traffic'
@@ -55,6 +61,9 @@ jobs:
   deploy-reports:
     if: ${{ inputs.deploy_remotes }}
     needs: deploy-platform
+    permissions:
+      contents: read
+      deployments: write
     uses: ./.github/workflows/deploy-cloudflare.yml
     with:
       app_name: '@mf/reports'
@@ -69,6 +78,9 @@ jobs:
   deploy-admin:
     if: ${{ inputs.deploy_remotes }}
     needs: deploy-platform
+    permissions:
+      contents: read
+      deployments: write
     uses: ./.github/workflows/deploy-cloudflare.yml
     with:
       app_name: '@mf/admin'
@@ -84,6 +96,9 @@ jobs:
   deploy-shell:
     if: ${{ inputs.deploy_shell }}
     needs: [deploy-traffic, deploy-reports, deploy-admin]
+    permissions:
+      contents: read
+      deployments: write
     uses: ./.github/workflows/deploy-cloudflare.yml
     with:
       app_name: '@mf/shell'
