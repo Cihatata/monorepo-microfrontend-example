@@ -158,8 +158,20 @@ and creates a new remote.
 
 ```
 monorepo-mf-example/
+├── .github/
+│   └── workflows/
+│       ├── app-ci.yml           # Reusable CI workflow
+│       ├── deploy-cloudflare.yml # Reusable deployment workflow
+│       ├── deploy-all.yml       # Full deployment (manual)
+│       ├── shell.yml            # Shell CI/CD
+│       ├── platform.yml         # Platform CI/CD
+│       ├── traffic.yml          # Traffic CI/CD
+│       ├── reports.yml          # Reports CI/CD
+│       └── admin.yml            # Admin CI/CD
 ├── apps/
 │   ├── shell/          # HOST application
+│   │   ├── _headers    # Cloudflare Pages headers
+│   │   └── _redirects  # SPA routing config
 │   ├── platform/       # Core remote (providers, account)
 │   ├── traffic/        # Domain remote
 │   ├── reports/        # Domain remote
@@ -178,6 +190,137 @@ monorepo-mf-example/
 └── postcss.config.cjs
 ```
 
+## ☁️ Cloudflare Pages Deployment
+
+This project is configured for deployment to Cloudflare Pages with multiple projects (one per micro-frontend).
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Cloudflare Pages                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │   Traffic   │    │   Reports   │    │    Admin    │     │
+│  │  (Remote)   │    │  (Remote)   │    │  (Remote)   │     │
+│  │ mf-traffic  │    │ mf-reports  │    │  mf-admin   │     │
+│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘     │
+│         │                  │                  │             │
+│         └──────────────────┼──────────────────┘             │
+│                           │                                 │
+│                    ┌──────▼──────┐                         │
+│                    │   Platform   │                         │
+│                    │   (Shared)   │                         │
+│                    │ mf-platform  │                         │
+│                    └──────┬──────┘                         │
+│                           │                                 │
+│                    ┌──────▼──────┐                         │
+│                    │    Shell    │                          │
+│                    │   (Host)    │                          │
+│                    │  mf-shell   │                          │
+│                    └─────────────┘                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Setup
+
+#### 1. Create Cloudflare Pages Projects
+
+Create 5 separate Pages projects in Cloudflare Dashboard:
+
+| Project Name | Application | Description |
+|--------------|-------------|-------------|
+| `mf-platform` | Platform | Shared services (QueryClient, Account) |
+| `mf-traffic` | Traffic | Traffic domain remote |
+| `mf-reports` | Reports | Reports domain remote |
+| `mf-admin` | Admin | Admin domain remote |
+| `mf-shell` | Shell | Host application |
+
+#### 2. Configure GitHub Secrets
+
+Add the following secrets to your GitHub repository (Settings → Secrets → Actions):
+
+| Secret | Description |
+|--------|-------------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token with Pages permissions |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare Account ID |
+| `PLATFORM_REMOTE_URL` | Platform Pages URL (e.g., `https://mf-platform.pages.dev`) |
+| `TRAFFIC_REMOTE_URL` | Traffic Pages URL (e.g., `https://mf-traffic.pages.dev`) |
+| `REPORTS_REMOTE_URL` | Reports Pages URL (e.g., `https://mf-reports.pages.dev`) |
+| `ADMIN_REMOTE_URL` | Admin Pages URL (e.g., `https://mf-admin.pages.dev`) |
+
+#### 3. Create Cloudflare API Token
+
+1. Go to Cloudflare Dashboard → My Profile → API Tokens
+2. Create Token → Use "Edit Cloudflare Workers" template
+3. Permissions: Account → Cloudflare Pages → Edit
+4. Copy the token and save as `CLOUDFLARE_API_TOKEN` secret
+
+### Deployment
+
+#### Automatic Deployment (CI/CD)
+
+Each application has its own workflow that triggers on changes:
+
+- Changes to `apps/shell/**` → Deploys Shell
+- Changes to `apps/platform/**` → Deploys Platform
+- Changes to `apps/traffic/**` → Deploys Traffic
+- Changes to `apps/reports/**` → Deploys Reports
+- Changes to `apps/admin/**` → Deploys Admin
+
+Deployment only occurs when pushing to the `main` branch.
+
+#### Manual Full Deployment
+
+To deploy all applications in the correct order:
+
+1. Go to GitHub → Actions → "Deploy All to Cloudflare Pages"
+2. Click "Run workflow"
+3. Select which applications to deploy
+4. Click "Run workflow"
+
+**Deployment Order:**
+1. Platform (no dependencies)
+2. Traffic, Reports, Admin (parallel, depend on Platform)
+3. Shell (depends on all remotes)
+
+### Workflow Files
+
+```
+.github/workflows/
+├── app-ci.yml              # Reusable CI workflow (lint, build)
+├── deploy-cloudflare.yml   # Reusable Cloudflare deployment workflow
+├── deploy-all.yml          # Full deployment workflow (manual trigger)
+├── shell.yml               # Shell CI/CD
+├── platform.yml            # Platform CI/CD
+├── traffic.yml             # Traffic CI/CD
+├── reports.yml             # Reports CI/CD
+└── admin.yml               # Admin CI/CD
+```
+
+### Environment Variables
+
+Build-time environment variables for remote URLs:
+
+| Variable | Used By | Description |
+|----------|---------|-------------|
+| `PLATFORM_REMOTE_URL` | Shell, Traffic, Reports, Admin | Platform remote URL |
+| `TRAFFIC_REMOTE_URL` | Shell | Traffic remote URL |
+| `REPORTS_REMOTE_URL` | Shell | Reports remote URL |
+| `ADMIN_REMOTE_URL` | Shell | Admin remote URL |
+
+### CORS Configuration
+
+Each remote application includes `_headers` file for CORS support:
+
+```
+/remoteEntry.js
+  Access-Control-Allow-Origin: *
+  Cache-Control: no-cache, no-store, must-revalidate
+```
+
 ## 🎯 Key Rules
 
 1. **Router**: Only shell creates router instance
@@ -186,3 +329,4 @@ monorepo-mf-example/
 4. **Remotes**: Export route config, don't create routers
 5. **Commits**: Use Conventional Commits format
 6. **Linting**: All code must pass ESLint before commit
+7. **Deployment**: Platform must be deployed before other remotes

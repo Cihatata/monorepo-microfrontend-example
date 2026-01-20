@@ -1,0 +1,13 @@
+# Cloudflare Pages Headers
+# CORS headers for Module Federation remote entry
+
+/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, OPTIONS
+  Access-Control-Allow-Headers: *
+
+/remoteEntry.js
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, OPTIONS
+  Access-Control-Allow-Headers: *
+  Cache-Control: no-cache, no-store, must-revalidate

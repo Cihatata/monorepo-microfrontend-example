@@ -1,0 +1,46 @@
+name: Platform CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/platform/**'
+      - '.github/workflows/platform.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.eslintrc.base.cjs'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/platform/**'
+      - '.github/workflows/platform.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.eslintrc.base.cjs'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/app-ci.yml
+    with:
+      app_name: '@mf/platform'
+      app_path: 'apps/platform'
+      app_port: 3001
+
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      app_name: '@mf/platform'
+      app_path: 'apps/platform'
+      project_name: 'mf-platform'
+      is_shell: false
+      is_domain_remote: false
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

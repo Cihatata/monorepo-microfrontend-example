@@ -1,0 +1,99 @@
+# Deploy All Applications to Cloudflare Pages
+# This workflow deploys all applications in the correct order:
+# 1. Platform (shared services - no dependencies)
+# 2. Domain Remotes (traffic, reports, admin - depend on platform)
+# 3. Shell (host - depends on all remotes)
+
+name: Deploy All to Cloudflare Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_platform:
+        description: 'Deploy Platform'
+        type: boolean
+        default: true
+      deploy_remotes:
+        description: 'Deploy Domain Remotes (traffic, reports, admin)'
+        type: boolean
+        default: true
+      deploy_shell:
+        description: 'Deploy Shell'
+        type: boolean
+        default: true
+
+jobs:
+  # Stage 1: Deploy Platform (no dependencies)
+  deploy-platform:
+    if: ${{ inputs.deploy_platform }}
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      app_name: '@mf/platform'
+      app_path: 'apps/platform'
+      project_name: 'mf-platform'
+      is_shell: false
+      is_domain_remote: false
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  # Stage 2: Deploy Domain Remotes (depend on platform)
+  deploy-traffic:
+    if: ${{ inputs.deploy_remotes }}
+    needs: deploy-platform
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      app_name: '@mf/traffic'
+      app_path: 'apps/traffic'
+      project_name: 'mf-traffic'
+      is_domain_remote: true
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PLATFORM_REMOTE_URL: ${{ secrets.PLATFORM_REMOTE_URL }}
+
+  deploy-reports:
+    if: ${{ inputs.deploy_remotes }}
+    needs: deploy-platform
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      app_name: '@mf/reports'
+      app_path: 'apps/reports'
+      project_name: 'mf-reports'
+      is_domain_remote: true
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PLATFORM_REMOTE_URL: ${{ secrets.PLATFORM_REMOTE_URL }}
+
+  deploy-admin:
+    if: ${{ inputs.deploy_remotes }}
+    needs: deploy-platform
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      app_name: '@mf/admin'
+      app_path: 'apps/admin'
+      project_name: 'mf-admin'
+      is_domain_remote: true
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PLATFORM_REMOTE_URL: ${{ secrets.PLATFORM_REMOTE_URL }}
+
+  # Stage 3: Deploy Shell (depends on all remotes)
+  deploy-shell:
+    if: ${{ inputs.deploy_shell }}
+    needs: [deploy-traffic, deploy-reports, deploy-admin]
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      app_name: '@mf/shell'
+      app_path: 'apps/shell'
+      project_name: 'mf-shell'
+      is_shell: true
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PLATFORM_REMOTE_URL: ${{ secrets.PLATFORM_REMOTE_URL }}
+      TRAFFIC_REMOTE_URL: ${{ secrets.TRAFFIC_REMOTE_URL }}
+      REPORTS_REMOTE_URL: ${{ secrets.REPORTS_REMOTE_URL }}
+      ADMIN_REMOTE_URL: ${{ secrets.ADMIN_REMOTE_URL }}

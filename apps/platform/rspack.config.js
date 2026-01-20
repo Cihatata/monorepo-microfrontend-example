@@ -59,6 +59,13 @@ module.exports = {
     new rspack.HtmlRspackPlugin({
       template: "./src/index.html",
     }),
+    // Copy Cloudflare Pages config files
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        { from: "_headers", to: ".", noErrorOnMissing: true },
+        { from: "_redirects", to: ".", noErrorOnMissing: true },
+      ],
+    }),
     new ModuleFederationPlugin({
       name: "platform",
       dts: false,

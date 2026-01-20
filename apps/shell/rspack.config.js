@@ -2,10 +2,18 @@ const { ModuleFederationPlugin } = require("@module-federation/enhanced/rspack")
 const rspack = require("@rspack/core");
 const path = require("path");
 
+const isProduction = process.env.NODE_ENV === "production";
+
+// Remote URLs - environment variables for production, localhost for development
+const PLATFORM_URL = process.env.PLATFORM_REMOTE_URL || "http://localhost:3001";
+const TRAFFIC_URL = process.env.TRAFFIC_REMOTE_URL || "http://localhost:3002";
+const REPORTS_URL = process.env.REPORTS_REMOTE_URL || "http://localhost:3003";
+const ADMIN_URL = process.env.ADMIN_REMOTE_URL || "http://localhost:3004";
+
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
   entry: "./src/main.tsx",
-  mode: process.env.NODE_ENV === "production" ? "production" : "development",
+  mode: isProduction ? "production" : "development",
   devServer: {
     port: 3000,
     historyApiFallback: true,
@@ -59,14 +67,21 @@ module.exports = {
     new rspack.HtmlRspackPlugin({
       template: "./src/index.html",
     }),
+    // Copy Cloudflare Pages config files
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        { from: "_headers", to: ".", noErrorOnMissing: true },
+        { from: "_redirects", to: ".", noErrorOnMissing: true },
+      ],
+    }),
     new ModuleFederationPlugin({
       name: "shell",
       dts: false,
       remotes: {
-        platform: "platform@http://localhost:3001/remoteEntry.js",
-        traffic: "traffic@http://localhost:3002/remoteEntry.js",
-        reports: "reports@http://localhost:3003/remoteEntry.js",
-        admin: "admin@http://localhost:3004/remoteEntry.js",
+        platform: `platform@${PLATFORM_URL}/remoteEntry.js`,
+        traffic: `traffic@${TRAFFIC_URL}/remoteEntry.js`,
+        reports: `reports@${REPORTS_URL}/remoteEntry.js`,
+        admin: `admin@${ADMIN_URL}/remoteEntry.js`,
       },
       shared: {
         react: {

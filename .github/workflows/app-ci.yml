@@ -1,0 +1,75 @@
+name: App CI
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+      app_path:
+        required: true
+        type: string
+      app_port:
+        required: false
+        type: number
+        default: 0
+
+jobs:
+  lint-and-build:
+    name: Lint & Build - ${{ inputs.app_name }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ inputs.app_path }}/dist
+            ${{ inputs.app_path }}/.rspack
+          key: ${{ runner.os }}-build-${{ inputs.app_name }}-${{ hashFiles(format('{0}/**/*.{ts,tsx,js,jsx}', inputs.app_path), format('{0}/rspack.config.js', inputs.app_path), format('{0}/package.json', inputs.app_path)) }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ inputs.app_name }}-
+
+      - name: Lint
+        run: pnpm --filter ${{ inputs.app_name }} lint
+
+      - name: Build
+        run: pnpm --filter ${{ inputs.app_name }} build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.app_name }}-dist
+          path: ${{ inputs.app_path }}/dist
+          retention-days: 7

@@ -1,0 +1,48 @@
+name: Admin CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/admin/**'
+      - 'apps/platform/**'  # Admin depends on platform
+      - '.github/workflows/admin.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.eslintrc.base.cjs'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/admin/**'
+      - 'apps/platform/**'
+      - '.github/workflows/admin.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.eslintrc.base.cjs'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/app-ci.yml
+    with:
+      app_name: '@mf/admin'
+      app_path: 'apps/admin'
+      app_port: 3004
+
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      app_name: '@mf/admin'
+      app_path: 'apps/admin'
+      project_name: 'mf-admin'
+      is_domain_remote: true
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PLATFORM_REMOTE_URL: ${{ secrets.PLATFORM_REMOTE_URL }}

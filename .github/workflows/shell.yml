@@ -1,0 +1,51 @@
+name: Shell CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/shell/**'
+      - 'apps/platform/**'  # Shell depends on platform
+      - '.github/workflows/shell.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.eslintrc.base.cjs'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/shell/**'
+      - 'apps/platform/**'
+      - '.github/workflows/shell.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.eslintrc.base.cjs'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/app-ci.yml
+    with:
+      app_name: '@mf/shell'
+      app_path: 'apps/shell'
+      app_port: 3000
+
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      app_name: '@mf/shell'
+      app_path: 'apps/shell'
+      project_name: 'mf-shell'
+      is_shell: true
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PLATFORM_REMOTE_URL: ${{ secrets.PLATFORM_REMOTE_URL }}
+      TRAFFIC_REMOTE_URL: ${{ secrets.TRAFFIC_REMOTE_URL }}
+      REPORTS_REMOTE_URL: ${{ secrets.REPORTS_REMOTE_URL }}
+      ADMIN_REMOTE_URL: ${{ secrets.ADMIN_REMOTE_URL }}

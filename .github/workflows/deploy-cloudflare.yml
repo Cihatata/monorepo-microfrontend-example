@@ -1,0 +1,117 @@
+# Reusable Cloudflare Pages Deployment Workflow
+name: Deploy to Cloudflare Pages
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+        description: 'Application name (e.g., @mf/shell)'
+      app_path:
+        required: true
+        type: string
+        description: 'Path to the application (e.g., apps/shell)'
+      project_name:
+        required: true
+        type: string
+        description: 'Cloudflare Pages project name'
+      is_shell:
+        required: false
+        type: boolean
+        default: false
+        description: 'Whether this is the shell (host) application'
+      is_domain_remote:
+        required: false
+        type: boolean
+        default: false
+        description: 'Whether this is a domain remote (needs platform URL)'
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: true
+      CLOUDFLARE_ACCOUNT_ID:
+        required: true
+      PLATFORM_REMOTE_URL:
+        required: false
+      TRAFFIC_REMOTE_URL:
+        required: false
+      REPORTS_REMOTE_URL:
+        required: false
+      ADMIN_REMOTE_URL:
+        required: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.app_name }} to Cloudflare Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Build for Shell (Host) - needs all remote URLs
+      - name: Build Shell
+        if: ${{ inputs.is_shell }}
+        run: pnpm --filter ${{ inputs.app_name }} build
+        env:
+          NODE_ENV: production
+          PLATFORM_REMOTE_URL: ${{ secrets.PLATFORM_REMOTE_URL }}
+          TRAFFIC_REMOTE_URL: ${{ secrets.TRAFFIC_REMOTE_URL }}
+          REPORTS_REMOTE_URL: ${{ secrets.REPORTS_REMOTE_URL }}
+          ADMIN_REMOTE_URL: ${{ secrets.ADMIN_REMOTE_URL }}
+
+      # Build for Domain Remotes (traffic, reports, admin) - needs platform URL
+      - name: Build Domain Remote
+        if: ${{ inputs.is_domain_remote }}
+        run: pnpm --filter ${{ inputs.app_name }} build
+        env:
+          NODE_ENV: production
+          PLATFORM_REMOTE_URL: ${{ secrets.PLATFORM_REMOTE_URL }}
+
+      # Build for Platform - no remote URLs needed
+      - name: Build Platform
+        if: ${{ !inputs.is_shell && !inputs.is_domain_remote }}
+        run: pnpm --filter ${{ inputs.app_name }} build
+        env:
+          NODE_ENV: production
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ inputs.project_name }}
+          directory: ${{ inputs.app_path }}/dist
+          gitHubToken: ${{ github.token }}
+          branch: ${{ github.ref_name }}
+          wranglerVersion: '3'
