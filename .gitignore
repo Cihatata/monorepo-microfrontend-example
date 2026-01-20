@@ -20,6 +20,8 @@ pnpm-debug.log*
 *.swp
 *.swo
 .vscode/
+.cursor/
+.cursorrules
 
 # OS
 .DS_Store
