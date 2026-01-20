@@ -1,0 +1,7 @@
+# Tailwind CSS v4 Rules
+
+- Tailwind CSS version MUST be v4.
+- Global CSS must contain:
+  @import "tailwindcss";
+- Use @tailwindcss/postcss in postcss.config.cjs.
+- No UI component libraries allowed.

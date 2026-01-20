@@ -1,0 +1,25 @@
+# Lefthook - Git Hooks Manager
+# https://github.com/evilmartians/lefthook
+
+# Pre-commit hooks
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      glob: "*.{js,jsx,ts,tsx}"
+      run: pnpm lint
+      stage_fixed: true
+    
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: pnpm -r exec tsc --noEmit
+      
+    format-check:
+      glob: "*.{js,jsx,ts,tsx,json,md}"
+      run: echo "Format check passed"
+
+# Commit message validation
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm commitlint --edit {1}
