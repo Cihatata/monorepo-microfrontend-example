@@ -54,7 +54,7 @@ jobs:
           path: |
             ${{ inputs.app_path }}/dist
             ${{ inputs.app_path }}/.rspack
-          key: ${{ runner.os }}-build-${{ inputs.app_name }}-${{ hashFiles(format('{0}/**/*.{ts,tsx,js,jsx}', inputs.app_path), format('{0}/rspack.config.js', inputs.app_path), format('{0}/package.json', inputs.app_path)) }}
+          key: ${{ runner.os }}-build-${{ inputs.app_name }}-${{ hashFiles(format('{0}/package.json', inputs.app_path), format('{0}/rspack.config.js', inputs.app_path), format('{0}/**/*.ts', inputs.app_path), format('{0}/**/*.tsx', inputs.app_path), format('{0}/**/*.js', inputs.app_path), format('{0}/**/*.jsx', inputs.app_path)) }}
           restore-keys: |
             ${{ runner.os }}-build-${{ inputs.app_name }}-
 
