@@ -2,10 +2,12 @@ const { ModuleFederationPlugin } = require("@module-federation/enhanced/rspack")
 const rspack = require("@rspack/core");
 const path = require("path");
 
+const isProduction = process.env.NODE_ENV === "production";
+
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
   entry: "./src/main.tsx",
-  mode: process.env.NODE_ENV === "production" ? "production" : "development",
+  mode: isProduction ? "production" : "development",
   devServer: {
     port: 3001,
     historyApiFallback: true,
@@ -15,7 +17,7 @@ module.exports = {
     },
   },
   output: {
-    publicPath: "auto",
+    publicPath: isProduction ? "/" : "auto",
     path: path.resolve(__dirname, "dist"),
     clean: true,
   },

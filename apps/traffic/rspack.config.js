@@ -20,7 +20,7 @@ module.exports = {
     },
   },
   output: {
-    publicPath: "auto",
+    publicPath: isProduction ? "/" : "auto",
     path: path.resolve(__dirname, "dist"),
     clean: true,
   },
