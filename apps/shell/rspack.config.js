@@ -71,7 +71,8 @@ module.exports = {
     new rspack.CopyRspackPlugin({
       patterns: [
         { from: "_headers", to: ".", noErrorOnMissing: true },
-        { from: "_redirects", to: ".", noErrorOnMissing: true },
+        // _redirects removed - Cloudflare Pages automatically handles SPA routing
+        // Static files are served automatically, unmatched routes go to root
       ],
     }),
     new ModuleFederationPlugin({
