@@ -4,6 +4,9 @@ const path = require("path");
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// Production URL for this remote - used for chunk loading
+const PLATFORM_PUBLIC_URL = process.env.PLATFORM_PUBLIC_URL || "https://mf-platform.pages.dev";
+
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
   entry: "./src/main.tsx",
@@ -17,7 +20,7 @@ module.exports = {
     },
   },
   output: {
-    publicPath: isProduction ? "/" : "auto",
+    publicPath: isProduction ? `${PLATFORM_PUBLIC_URL}/` : "auto",
     path: path.resolve(__dirname, "dist"),
     clean: true,
   },
