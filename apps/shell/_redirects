@@ -1,3 +1,4 @@
-# Cloudflare Pages SPA Redirect
-# Only for routes that don't match static files
-/* /index.html 200
+# Cloudflare Pages automatically handles SPA routing
+# If 404.html doesn't exist, Pages serves root / for unmatched paths
+# Static files (JS, CSS, etc.) are served automatically
+# No redirect rules needed - Cloudflare Pages handles this automatically
