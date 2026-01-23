@@ -14,3 +14,8 @@ declare module "platform/account" {
   export function prefetchAccount(): Promise<void>;
 }
 
+declare module "platform/queryClient" {
+  import { QueryClient } from "@tanstack/react-query";
+  export function getQueryClient(): QueryClient;
+}
+

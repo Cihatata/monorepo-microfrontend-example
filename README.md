@@ -310,23 +310,3 @@ Build-time environment variables for remote URLs:
 | `TRAFFIC_REMOTE_URL` | Shell | Traffic remote URL |
 | `REPORTS_REMOTE_URL` | Shell | Reports remote URL |
 | `ADMIN_REMOTE_URL` | Shell | Admin remote URL |
-
-### CORS Configuration
-
-Each remote application includes `_headers` file for CORS support:
-
-```
-/remoteEntry.js
-  Access-Control-Allow-Origin: *
-  Cache-Control: no-cache, no-store, must-revalidate
-```
-
-## 🎯 Key Rules
-
-1. **Router**: Only shell creates router instance
-2. **Frame**: Shell renders Header/Sidebar/Layout once
-3. **State**: Account data shared via platform
-4. **Remotes**: Export route config, don't create routers
-5. **Commits**: Use Conventional Commits format
-6. **Linting**: All code must pass ESLint before commit
-7. **Deployment**: Platform must be deployed before other remotes
